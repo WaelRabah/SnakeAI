@@ -1,6 +1,8 @@
 import pygame
+import neat
 import random
 import tkinter as tk
+import os
 from tkinter import messagebox
 class Snake :
     body = []
@@ -135,8 +137,26 @@ def message_box(subject,content):
         root.destroy()
     except:
         pass 
-def main():
+def run (config_path) :
+    config=neat.config.Config(neat.DefaultGenome,neat.DefaultReproduction,
+    neat.DefaultSpeciesSet , neat.DefaultStagnation , config_path
+    )
+    p= neat.Population(config)
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+    winner = p.run(main,50)
+def main(genomes,config):
     global width,rows,s , snack
+    nets=[]
+    ge=[]
+    snakes=[]
+    for _,g in genomes :
+        net = neat.nn.FeedForwardNetwork.create(g,config)
+        nets.append(net)
+        snakes.append(Snake((255,0,0),(10,10)))
+        g.fitness= 0
+        ge.append(g)
     width=500
     rows=20
     surface=pygame.display.set_mode((width,width))
@@ -147,6 +167,12 @@ def main():
     while flag :
         pygame.time.delay(50)
         clock.tick(10)
+        for x,s in enumerate(snakes) :
+            s.move()
+            ge[x].fitness += 0.2
+            output = nets[x].activate()
+            if output[0] > 0.5 :
+                bird.jump()
         s.move()
         if s.body[0].pos==snack.pos :
             s.addCube()
@@ -159,4 +185,7 @@ def main():
 
         redrawWindow(surface)
     pass
-main()
+if __name__ == "__main__":
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir,"config.txt")
+    run(config_path)
